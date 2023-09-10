@@ -78,6 +78,15 @@ An opinionated code formatter; Supports many languages; Integrates with most edi
 
 [Go To Documentation](https://prettier.io/docs/en/index.html)
 
+### **Env Variables**
+
+You must define the following env variables:
+
+```bash
+GITHUB_TOKEN=${TOKEN WITH ACCESS TO REPOSITORIES YOU WANT TO INSPECT}
+GITHUB_ORG=${WHICH ORG/USER YOU WANT TO BUILD FOR}
+```
+
 ## License
 
 MIT
