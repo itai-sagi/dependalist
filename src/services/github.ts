@@ -25,11 +25,7 @@ let repos: GithubRepo[] = [];
 
 const supportedLanguages = ["typescript", "javascript"];
 
-export const getRepos = async (): Promise<GithubRepo[]> => {
-    if (repos.length > 0) {
-        return repos;
-    }
-
+export const fetchRepos = async (): Promise<GithubRepo[]> => {
     let page = 1;
     let response = await client.get(`/orgs/${GITHUB_ORG}/repos`, {
         params: { type: "private", per_page: 100, page },
@@ -52,43 +48,10 @@ export const getRepos = async (): Promise<GithubRepo[]> => {
 
     repos = uniqBy(filtererdRepos, (r) => r.name);
 
-    repos.forEach((r) => {
-        const files = File.readdirSync(repoDepsPath(r));
-        r.dockerImages = [];
-        r.packageJsons = {};
+    return repos;
+};
 
-        const dockerfile = files.find((f) => f === "Dockerfile");
-        if (dockerfile) {
-            const dockerfileContents = File.readFileSync(
-                repoDepsPath(r) + "/" + dockerfile,
-            ).toString();
-            const imagesUsed = dockerfileContents
-                .split("\n")
-                .filter((l) => l.includes("FROM "));
-
-            r.dockerImages = imagesUsed.map(
-                (img) => img.replace("FROM ", "").split(" as")[0],
-            );
-        }
-
-        const nvmrc = files.find((f) => f === ".nvmrc");
-        if (nvmrc) {
-            const nodeVersion = File.readFileSync(
-                repoDepsPath(r) + "/" + nvmrc,
-            ).toString();
-            r.nvmrcNodeVersion = nodeVersion;
-        }
-
-        files
-            .filter((f) => f.endsWith(".json"))
-            .forEach((f) => {
-                const ws = f.split("-")[0] || "main";
-                r.packageJsons[ws] = JSON.parse(
-                    File.readFileSync(repoDepsPath(r) + "/" + f).toString(),
-                );
-            });
-    });
-
+export const getRepos = async (): Promise<GithubRepo[]> => {
     return repos;
 };
 
@@ -161,10 +124,54 @@ export const retrieveDependencies = async (repo: GithubRepo) => {
         console.error(`Failed fetching package.json, ${repo.name}`);
     }
 };
-const downloadPackageJsons = async () => {
-    const repos = await getRepos();
 
-    await Promise.all(repos.map((r) => retrieveDependencies(r)));
+const enrichRepos = (repos: GithubRepo[]) => {
+    repos.forEach((r) => {
+        const files = File.readdirSync(repoDepsPath(r));
+        r.dockerImages = [];
+        r.packageJsons = {};
+
+        const dockerfile = files.find((f) => f === "Dockerfile");
+        if (dockerfile) {
+            const dockerfileContents = File.readFileSync(
+                repoDepsPath(r) + "/" + dockerfile,
+            ).toString();
+            const imagesUsed = dockerfileContents
+                .split("\n")
+                .filter((l) => l.includes("FROM "));
+
+            r.dockerImages = imagesUsed.map(
+                (img) => img.replace("FROM ", "").split(" as")[0],
+            );
+        }
+
+        const nvmrc = files.find((f) => f === ".nvmrc");
+        if (nvmrc) {
+            const nodeVersion = File.readFileSync(
+                repoDepsPath(r) + "/" + nvmrc,
+            ).toString();
+            r.nvmrcNodeVersion = nodeVersion;
+        }
+
+        files
+            .filter((f) => f.endsWith(".json"))
+            .forEach((f) => {
+                const ws = f.split("-")[0] || "main";
+                r.packageJsons[ws] = JSON.parse(
+                    File.readFileSync(repoDepsPath(r) + "/" + f).toString(),
+                );
+            });
+    });
+}
+
+const downloadPackageJsons = async () => {
+    const githubRepos = await fetchRepos();
+
+    await Promise.all(githubRepos.map((r) => retrieveDependencies(r)));
+
+    await enrichRepos(githubRepos);
+
+    repos = githubRepos;
 };
 
-downloadPackageJsons();
+void downloadPackageJsons();
