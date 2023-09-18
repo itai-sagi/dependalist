@@ -12,6 +12,8 @@ if (!GITHUB_ORG) {
     throw new Error("No GITHUB_ORG, please provide it as env variable");
 }
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 const client = Axios.default.create({
     baseURL: "https://api.github.com/",
     headers: {

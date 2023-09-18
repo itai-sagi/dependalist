@@ -60,6 +60,13 @@ const reposColumns = [
         sorter: (a: GithubRepo, b: GithubRepo) =>
             (a.nvmrcNodeVersion || "").localeCompare(b.nvmrcNodeVersion || ""),
     },
+    {
+        title: "Last pushed at",
+        dataIndex: "pushed_at",
+        key: "pushed_at",
+        sorter: (a: GithubRepo, b: GithubRepo) =>
+            new Date(a.pushed_at) - new Date(b.pushed_at)
+    },
 ];
 
 enum Mode {

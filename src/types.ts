@@ -7,6 +7,7 @@ export interface GithubRepo {
     packageJsons: Record<string, any>;
     dockerImages: string[];
     nvmrcNodeVersion?: string;
+    pushed_at: string;
 };
 
 export interface Dependency {
