@@ -52,6 +52,9 @@ export const fetchRepos = async (): Promise<GithubRepo[]> => {
 };
 
 export const getRepos = async (): Promise<GithubRepo[]> => {
+    while (fetching) {
+        await sleep(50);
+    }
     return repos;
 };
 
@@ -164,7 +167,13 @@ const enrichRepos = (repos: GithubRepo[]) => {
     });
 }
 
+let fetching = false;
 const downloadPackageJsons = async () => {
+    if (fetching) {
+        return;
+    }
+
+    fetching = true;
     const githubRepos = await fetchRepos();
 
     await Promise.all(githubRepos.map((r) => retrieveDependencies(r)));
@@ -172,6 +181,7 @@ const downloadPackageJsons = async () => {
     await enrichRepos(githubRepos);
 
     repos = githubRepos;
+    fetching = false;
 };
 
 void downloadPackageJsons();
